@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { cn } from '@/lib/utils'
 import { TaskRow } from '@/components/ui/task-row'
 import type { Task } from '@/lib/queries/tasks'
 

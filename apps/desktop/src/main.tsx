@@ -7,11 +7,13 @@ import { Toaster } from 'react-hot-toast'
 import { App } from './App'
 import './index.css'
 
-// Apply persisted theme before first paint so nothing flashes in the wrong palette.
+// Apply cached theme before first paint so nothing flashes in the wrong
+// palette. localStorage holds 'light' | 'dark' | 'system' (see lib/theme.ts);
+// the settings table is the real source of truth once the app loads.
 {
   const saved = localStorage.getItem('adhd-theme')
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-  const dark = saved ? saved === 'dark' : prefersDark
+  const dark = saved === 'dark' || ((saved === 'system' || !saved) && prefersDark)
   const root = document.getElementById('root')
   if (dark && root) root.classList.add('dark')
 }

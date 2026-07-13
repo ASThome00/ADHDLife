@@ -1,28 +1,67 @@
-import { useEffect, useState, useCallback } from 'react'
+// Theme handling — the settings table is the source of truth ('light' |
+// 'dark' | 'system'); localStorage is only a pre-paint cache so the first
+// frame renders in the right palette before SQLite has loaded (see main.tsx).
+
+import { useEffect } from 'react'
+import { useSettings, useUpdateSettings } from '@/lib/hooks/use-data'
+
+export type Theme = 'light' | 'dark' | 'system'
 
 const STORAGE_KEY = 'adhd-theme'
 
-function readInitial(): boolean {
-  if (typeof window === 'undefined') return false
-  const saved = window.localStorage.getItem(STORAGE_KEY)
-  if (saved === 'dark') return true
-  if (saved === 'light') return false
+export function computeDark(theme: Theme): boolean {
+  if (theme === 'dark')  return true
+  if (theme === 'light') return false
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
 }
 
-function apply(dark: boolean) {
+function setDarkClass(dark: boolean) {
   const root = document.getElementById('root')
   if (!root) return
-  if (dark) root.classList.add('dark')
-  else root.classList.remove('dark')
-  window.localStorage.setItem(STORAGE_KEY, dark ? 'dark' : 'light')
+  root.classList.toggle('dark', dark)
 }
 
+// Follow OS changes while theme === 'system'
+let systemListener: ((e: MediaQueryListEvent) => void) | null = null
+
+export function applyTheme(theme: Theme) {
+  window.localStorage.setItem(STORAGE_KEY, theme)
+  setDarkClass(computeDark(theme))
+
+  const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
+  if (!mq) return
+  if (systemListener) {
+    mq.removeEventListener('change', systemListener)
+    systemListener = null
+  }
+  if (theme === 'system') {
+    systemListener = e => setDarkClass(e.matches)
+    mq.addEventListener('change', systemListener)
+  }
+}
+
+/** Full three-way theme control (Settings page). */
+export function useTheme(): { theme: Theme; isDark: boolean; setTheme: (t: Theme) => void } {
+  const { data: settings } = useSettings()
+  const updateSettings = useUpdateSettings()
+  const theme = (settings?.theme ?? 'system') as Theme
+
+  // Re-apply whenever the persisted value changes (incl. initial load)
+  useEffect(() => { applyTheme(theme) }, [theme])
+
+  return {
+    theme,
+    isDark: computeDark(theme),
+    setTheme: (t: Theme) => {
+      applyTheme(t)                          // instant — no DB round-trip wait
+      updateSettings.mutate({ theme: t })
+    },
+  }
+}
+
+/** Two-state convenience for the dashboard topbar toggle. Toggling picks an
+ *  explicit light/dark (a deliberate override of 'system'). */
 export function useDarkMode(): [boolean, () => void] {
-  const [dark, setDark] = useState<boolean>(readInitial)
-
-  useEffect(() => { apply(dark) }, [dark])
-
-  const toggle = useCallback(() => setDark(d => !d), [])
-  return [dark, toggle]
+  const { isDark, setTheme } = useTheme()
+  return [isDark, () => setTheme(isDark ? 'light' : 'dark')]
 }
