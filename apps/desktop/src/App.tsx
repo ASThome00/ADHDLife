@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getSettings } from '@/lib/queries/settings'
+import { applyTheme } from '@/lib/theme'
 import { AppShell } from '@/components/nav/app-shell'
 import { SetupPage }     from '@/pages/setup'
 import { DashboardPage } from '@/pages/dashboard'
@@ -17,6 +19,12 @@ export function App() {
     queryKey: ['settings'],
     queryFn:  getSettings,
   })
+
+  // Settings are the theme's source of truth — sync the DOM (and the
+  // localStorage pre-paint cache) as soon as they load or change.
+  useEffect(() => {
+    if (settings?.theme) applyTheme(settings.theme)
+  }, [settings?.theme])
 
   if (isLoading) {
     return (

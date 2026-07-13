@@ -579,6 +579,34 @@
   }
   .btn-ghost:hover { color: var(--text-accent); }
 
+  /* ── Toggle switch ── */
+  .toggle-sw {
+    width: 34px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--toggle-track);
+    border: none;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    padding: 0;
+  }
+  .toggle-sw::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    box-shadow: 1px 1px 0 var(--shadow);
+    transition: left 0.18s ease;
+  }
+  .toggle-sw.on        { background: var(--accent); }
+  .toggle-sw.on::after { left: 18px; }
+
   /* ── Priority dots (legacy utility) ── */
   .priority-dot          { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
   .priority-dot-HIGH     { background: #b34040; }
