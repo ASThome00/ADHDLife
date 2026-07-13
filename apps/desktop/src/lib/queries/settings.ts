@@ -8,6 +8,7 @@ export interface Settings {
   daily_focus_limit:    number
   notifications_enabled: boolean
   setup_complete:       boolean
+  next_week_priorities: string[]   // stored as JSON string (migration 002)
 }
 
 export async function getSettings(): Promise<Settings> {
@@ -24,6 +25,7 @@ export async function updateSettings(data: Partial<Omit<Settings, 'id'>>) {
   if (data.daily_focus_limit     !== undefined) { fields.push('daily_focus_limit = ?');     values.push(data.daily_focus_limit) }
   if (data.notifications_enabled !== undefined) { fields.push('notifications_enabled = ?'); values.push(data.notifications_enabled ? 1 : 0) }
   if (data.setup_complete        !== undefined) { fields.push('setup_complete = ?');        values.push(data.setup_complete ? 1 : 0) }
+  if (data.next_week_priorities  !== undefined) { fields.push('next_week_priorities = ?');  values.push(JSON.stringify(data.next_week_priorities)) }
 
   if (fields.length === 0) return
 
@@ -39,5 +41,16 @@ function normalizeSettings(row: any): Settings {
     daily_focus_limit:    row.daily_focus_limit,
     notifications_enabled: Boolean(row.notifications_enabled),
     setup_complete:       Boolean(row.setup_complete),
+    next_week_priorities: safeParsePriorities(row.next_week_priorities),
+  }
+}
+
+function safeParsePriorities(raw: unknown): string[] {
+  if (typeof raw !== 'string' || !raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter(p => typeof p === 'string') : []
+  } catch {
+    return []
   }
 }

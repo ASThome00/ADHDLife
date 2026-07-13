@@ -118,9 +118,16 @@ export async function getDashboardData() {
       WHERE h.is_archived = 0
       ORDER BY h.sort_order ASC
     `, [today]),
+    // NB: completed_at is written by SQLite as 'YYYY-MM-DD HH:MM:SS' (UTC, space
+    // separator) while our JS helpers produce 'YYYY-MM-DDTHH:MM:SS.sssZ'. Raw
+    // string comparison between the two formats is wrong (' ' sorts before 'T'),
+    // so normalize both sides through datetime(). datetime(?, 'utc') converts
+    // the local-midnight param to the UTC instant SQLite stored.
     selectOne<{ c: number }>(
-      `SELECT COUNT(*) as c FROM tasks WHERE completed_at >= ? AND completed_at <= ? AND status = 'DONE'`,
-      [todayStart, todayEnd]
+      `SELECT COUNT(*) as c FROM tasks
+       WHERE status = 'DONE' AND completed_at IS NOT NULL
+         AND datetime(completed_at) >= datetime(?, 'utc')`,
+      [localNaive(new Date(new Date().setHours(0, 0, 0, 0)))]
     ),
   ])
 
@@ -242,6 +249,111 @@ export async function setRecurrence(
        VALUES (?, ?, ?, 1)`,
       [randomId(), taskId, frequency]
     )
+  }
+}
+
+// ─── WEEKLY REVIEW ────────────────────────────────────────────────────────────
+
+export interface WeeklyReviewData {
+  weekStart:         string   // ISO — Monday 00:00 local
+  weekEnd:           string   // ISO — Sunday 23:59 local
+  completedThisWeek: number
+  plannedThisWeek:   number
+  inboxCleared:      number
+  habitStats:        Array<{ id: string; name: string; color: string; doneDays: number; windowDays: number }>
+  carriedOver:       Task[]
+  categoryBreakdown: Array<{ category_id: string | null; name: string; count: number }>
+}
+
+/** 'YYYY-MM-DD HH:MM:SS' in local time — for datetime(?, 'utc') comparisons. */
+function localNaive(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+export async function getWeeklyReviewData(): Promise<WeeklyReviewData> {
+  const now = new Date()
+  // Week = Monday..Sunday of the current week
+  const weekStart = new Date(now)
+  const dow = (now.getDay() + 6) % 7   // 0 = Monday
+  weekStart.setDate(now.getDate() - dow)
+  weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 6)
+  weekEnd.setHours(23, 59, 59, 999)
+
+  const weekStartNaive = localNaive(weekStart)
+  const weekStartIso   = weekStart.toISOString()
+  const weekEndIso     = weekEnd.toISOString()
+
+  // Habit-log date keys follow todayDateStr() (UTC date), so build the
+  // week-to-date window the same way for an apples-to-apples count.
+  const windowDates: string[] = []
+  for (let d = new Date(weekStart); d <= now; d.setDate(d.getDate() + 1)) {
+    windowDates.push(d.toISOString().split('T')[0])
+  }
+
+  const [completed, planned, cleared, habitRows, carriedRows, catRows] = await Promise.all([
+    selectOne<{ c: number }>(
+      `SELECT COUNT(*) as c FROM tasks
+       WHERE status = 'DONE' AND completed_at IS NOT NULL
+         AND datetime(completed_at) >= datetime(?, 'utc')`,
+      [weekStartNaive]
+    ),
+    selectOne<{ c: number }>(
+      `SELECT COUNT(*) as c FROM tasks
+       WHERE due_date >= ? AND due_date <= ? AND status != 'DROPPED' AND parent_task_id IS NULL`,
+      [weekStartIso, weekEndIso]
+    ),
+    // "Brain dumps cleared" — approximation: tasks created this week that are
+    // no longer sitting in the inbox. We don't keep status history, so tasks
+    // created directly with a category count too; close enough for a
+    // supportive weekly summary.
+    selectOne<{ c: number }>(
+      `SELECT COUNT(*) as c FROM tasks
+       WHERE datetime(created_at) >= datetime(?, 'utc')
+         AND status NOT IN ('INBOX', 'DROPPED') AND parent_task_id IS NULL`,
+      [weekStartNaive]
+    ),
+    select<any>(
+      `SELECT h.id, h.name, h.color, COUNT(hl.id) AS done_days
+       FROM habits h
+       LEFT JOIN habit_logs hl
+         ON hl.habit_id = h.id AND hl.completed = 1 AND hl.date >= ?
+       WHERE h.is_archived = 0
+       GROUP BY h.id ORDER BY h.sort_order ASC`,
+      [windowDates[0]]
+    ),
+    select<Task>(
+      `SELECT t.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
+       FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+       WHERE t.due_date IS NOT NULL AND t.due_date <= ?
+         AND t.status IN ('ACTIVE', 'INBOX') AND t.parent_task_id IS NULL
+       ORDER BY t.due_date ASC`,
+      [weekEndIso]
+    ),
+    select<any>(
+      `SELECT t.category_id, COALESCE(c.name, 'Uncategorized') AS name, COUNT(*) AS count
+       FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+       WHERE t.status = 'DONE' AND t.completed_at IS NOT NULL
+         AND datetime(t.completed_at) >= datetime(?, 'utc')
+       GROUP BY t.category_id ORDER BY count DESC`,
+      [weekStartNaive]
+    ),
+  ])
+
+  return {
+    weekStart:         weekStartIso,
+    weekEnd:           weekEndIso,
+    completedThisWeek: completed?.c ?? 0,
+    plannedThisWeek:   planned?.c ?? 0,
+    inboxCleared:      cleared?.c ?? 0,
+    habitStats: habitRows.map(h => ({
+      id: h.id, name: h.name, color: h.color,
+      doneDays: h.done_days ?? 0, windowDays: windowDates.length,
+    })),
+    carriedOver:       carriedRows.map(normalizeTask),
+    categoryBreakdown: catRows,
   }
 }
 
