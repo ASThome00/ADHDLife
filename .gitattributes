@@ -1,0 +1,27 @@
+# Normalize all text files to LF in the repo AND the working tree.
+# Why eol=lf and not autocrlf: this working tree is touched by both Windows
+# editors and Linux tooling — forcing LF everywhere means git status stays
+# quiet no matter which side writes the file. Modern Windows editors
+# (VS Code, etc.) handle LF fine.
+* text=auto eol=lf
+
+# Windows-specific scripts need CRLF to run correctly
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.db binary
+*.sqlite binary

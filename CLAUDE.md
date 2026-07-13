@@ -51,32 +51,35 @@ adhd-life/
 │   │   │   ├── index.css             Tailwind base + component classes
 │   │   │   ├── pages/                One file per route
 │   │   │   │   ├── setup.tsx         ✅ Done — first-run name screen
-│   │   │   │   ├── dashboard.tsx     🔲 Build next
-│   │   │   │   ├── inbox.tsx         🔲
-│   │   │   │   ├── tasks.tsx         🔲
-│   │   │   │   ├── habits.tsx        🔲
+│   │   │   │   ├── dashboard.tsx     ✅ Done — hero screen
+│   │   │   │   ├── inbox.tsx         ✅ Done — brain dump + assign flow
+│   │   │   │   ├── tasks.tsx         ✅ Done — Session 4 (two-panel + detail slide-over)
+│   │   │   │   ├── habits.tsx        🔲 Build next (Session 5)
 │   │   │   │   ├── reading.tsx       🔲
 │   │   │   │   ├── review.tsx        🔲
-│   │   │   │   └── settings.tsx      🔲
+│   │   │   │   ├── pomodoro.tsx      🔲 Placeholder stub (added #10, not in session plan)
+│   │   │   │   └── settings.tsx      ◐ Updater card only — rest is Session 8
 │   │   │   ├── components/
-│   │   │   │   ├── nav/
-│   │   │   │   │   ├── app-shell.tsx ✅ Done
-│   │   │   │   │   └── sidebar.tsx   ✅ Done
-│   │   │   │   ├── tasks/
-│   │   │   │   │   ├── task-card.tsx         ✅ Done (needs desktop polish)
-│   │   │   │   │   ├── quick-add-fab.tsx     ✅ Done (needs category picker)
-│   │   │   │   │   └── overdue-collapsible.tsx ✅ Done
-│   │   │   │   └── habits/
-│   │   │   │       └── habit-check-row.tsx   ✅ Done
+│   │   │   │   ├── nav/              ✅ app-shell, sidebar, bottom-nav
+│   │   │   │   ├── dashboard/        ✅ topbar, week-strip, focus-tasks-card, habits-card,
+│   │   │   │   │                        upcoming-card, carried-over-accordion, motivation-quote
+│   │   │   │   ├── tasks/            ✅ quick-add-fab, quick-add-modal, inbox-row,
+│   │   │   │   │                        category-sidebar, task-section, task-detail-panel, undo-toast
+│   │   │   │   └── ui/               ✅ task-row, checkbox, category-dot, category-pill,
+│   │   │   │                            priority-dot, placeholder-page
 │   │   │   └── lib/
 │   │   │       ├── db.ts             ✅ SQLite singleton (tauri-plugin-sql)
 │   │   │       ├── utils.ts          ✅ cn(), formatDueDate(), PRIORITY_CONFIG
+│   │   │       ├── theme.ts          ✅ theme application
+│   │   │       ├── category-colors.ts ✅ CATEGORY_THEME + PRIO — canonical color mapping
+│   │   │       ├── stores/quick-add.ts ✅ quick-add modal state
 │   │   │       ├── queries/
 │   │   │       │   ├── settings.ts   ✅ getSettings / updateSettings
 │   │   │       │   ├── tasks.ts      ✅ Full CRUD + getDashboardData
 │   │   │       │   └── habits-categories-books.ts ✅ Full CRUD
 │   │   │       └── hooks/
-│   │   │           └── use-data.ts   ✅ All TanStack Query hooks
+│   │   │           ├── use-data.ts   ✅ All TanStack Query hooks
+│   │   │           └── use-breakpoint.ts ✅
 │   │   └── src-tauri/
 │   │       ├── src/
 │   │       │   ├── main.rs           ✅ Done
@@ -157,20 +160,29 @@ Mobile pages call these helpers directly — no HTTP, no server needed.
 
 ## Desktop: Color Palette & Component Classes
 
-```
-Primary:  #8b5cf6  (violet)  — buttons, active states
-Surface:  #fafaf9  (warm white) — page background
-Card:     #ffffff  — card backgrounds
-Border:   #e7e5e4
+> The canonical token set is the "Design Reference" section at the bottom of this file
+> (warm rose/cream palette). Category and priority colors live in code at
+> `apps/desktop/src/lib/category-colors.ts` — use `getCategoryTheme()` / `PRIO`,
+> never hardcode category hexes in components.
 
-Category colors (also used as CSS vars):
-  work #3B82F6 · school #8B5CF6 · health #EF4444 · admin #F59E0B
-  growth #10B981 · reading #EC4899 · social #F97316 · home #6B7280
+```
+Primary:  #c9566e  (rose)   — buttons, active states, FAB, checked states
+Surface:  #fdf6ed  (--bg-page, warm cream)
+Card:     #fffef9  (--bg-card)
+Border:   #e2d4c0  (--border)
+
+Category inks (from category-colors.ts, keyed by seeded DB category ids):
+  work #2563a8 · school #96334d · health #b34040 · admin #b45309
+  growth #0d7a54 · reading #9d1f6e · social #b84d0a · home #4b5563
+Each has a matching pale wash for pill backgrounds.
+
+Priority colors (PRIO in category-colors.ts):
+  HIGH #b34040 · MEDIUM #b45309 · LOW #0d7a54
 ```
 
 Utility classes in `index.css`:
-- `.card` — white rounded-2xl card with shadow
-- `.btn-primary` — filled violet button
+- `.card` — warm card with flat offset shadow (see Design Reference)
+- `.btn-primary` — filled rose button
 - `.btn-ghost` — text-only hover button
 - `.priority-dot-HIGH/MEDIUM/LOW` — colored dot
 - `.scroll-panel` — scrollable area with thin scrollbar
@@ -749,7 +761,9 @@ Named accent values (use directly, not as vars):
 | Primary border | `#96334d` | Border + shadow on primary buttons |
 | Primary wash | `#c9566e18` | Selected pill background |
 
-Priority colors: Low `#a08060` · Medium `#c9566e` · High `#96334d`
+Priority colors: use `PRIO` from `apps/desktop/src/lib/category-colors.ts` —
+High `#b34040` · Medium `#b45309` · Low `#0d7a54` (the shipped values; an older
+draft of this doc listed rose-scale values, which no longer apply).
 
 ---
 
