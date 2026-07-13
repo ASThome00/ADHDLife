@@ -4,11 +4,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { getDashboardData, getTasks, getSubtasks, createTask, updateTask, brainDump, dropTask, getRecurrence, setRecurrence } from '@/lib/queries/tasks'
-import { getHabits, toggleHabitToday, getCategories, createCategory, updateCategory } from '@/lib/queries/habits-categories-books'
+import { getDashboardData, getTasks, getSubtasks, createTask, updateTask, brainDump, dropTask, getRecurrence, setRecurrence, getWeeklyReviewData } from '@/lib/queries/tasks'
+import { getHabits, createHabit, updateHabit, toggleHabitToday, getHabitHistory, getCategories, createCategory, updateCategory, getBooks, createBook, updateBook } from '@/lib/queries/habits-categories-books'
 import { getSettings, updateSettings } from '@/lib/queries/settings'
 import type { CreateTaskInput, Recurrence } from '@/lib/queries/tasks'
-import type { Category } from '@/lib/queries/habits-categories-books'
+import type { Category, Book } from '@/lib/queries/habits-categories-books'
 
 // ─── QUERY KEYS ───────────────────────────────────────────────────────────────
 export const qk = {
@@ -16,9 +16,11 @@ export const qk = {
   dashboard:  ['dashboard']            as const,
   tasks:      (f?: object) => ['tasks', f ?? {}] as const,
   habits:     ['habits']               as const,
+  habitHistory: ['habit-history']      as const,
   categories: ['categories']           as const,
   books:      (s?: string) => ['books', s ?? 'all'] as const,
   subtasks:   (parentId: string) => ['subtasks', parentId] as const,
+  weeklyReview: ['weekly-review']      as const,
   recurrence: (taskId: string)   => ['recurrence', taskId] as const,
 }
 
@@ -135,8 +137,15 @@ export function useToggleHabit() {
   return useMutation({
     mutationFn: ({ habitId, completed }: { habitId: string; completed: boolean }) =>
       toggleHabitToday(habitId, completed),
+    // Optimistic across every cache that shows habit state: dashboard circles,
+    // the Habits page list (streak number nudged so the tap feels instant —
+    // the real streak recalc lands on invalidation), and the 30-day grid.
     onMutate: async ({ habitId, completed }) => {
-      await qc.cancelQueries({ queryKey: qk.dashboard })
+      await Promise.all([
+        qc.cancelQueries({ queryKey: qk.dashboard }),
+        qc.cancelQueries({ queryKey: qk.habits }),
+        qc.cancelQueries({ queryKey: qk.habitHistory }),
+      ])
       qc.setQueryData(qk.dashboard, (old: any) => {
         if (!old) return old
         return {
@@ -146,8 +155,57 @@ export function useToggleHabit() {
           ),
         }
       })
+      qc.setQueryData(qk.habits, (old: any) => {
+        if (!old) return old
+        return old.map((h: any) =>
+          h.id === habitId
+            ? {
+                ...h,
+                completed_today: completed,
+                current_streak: Math.max(0, h.current_streak + (completed ? 1 : -1)),
+              }
+            : h
+        )
+      })
+      const today = new Date().toISOString().split('T')[0]
+      qc.setQueryData(qk.habitHistory, (old: any) => {
+        if (!old) return old
+        const rest = old.filter((e: any) => !(e.habit_id === habitId && e.date === today))
+        return [...rest, { habit_id: habitId, date: today, completed }]
+      })
     },
     onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.habits })
+      qc.invalidateQueries({ queryKey: qk.habitHistory })
+      qc.invalidateQueries({ queryKey: qk.dashboard })
+    },
+    onError: () => toast.error('Failed to update habit'),
+  })
+}
+
+export function useHabitHistory() {
+  return useQuery({ queryKey: qk.habitHistory, queryFn: () => getHabitHistory(30) })
+}
+
+export function useCreateHabit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ name, color }: { name: string; color: string }) => createHabit(name, color),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.habits })
+      qc.invalidateQueries({ queryKey: qk.dashboard })
+      toast.success('Habit added!')
+    },
+    onError: () => toast.error('Failed to add habit'),
+  })
+}
+
+export function useUpdateHabit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateHabit>[1] }) =>
+      updateHabit(id, data),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.habits })
       qc.invalidateQueries({ queryKey: qk.dashboard })
     },
@@ -155,12 +213,67 @@ export function useToggleHabit() {
   })
 }
 
+// ─── WEEKLY REVIEW ────────────────────────────────────────────────────────────
+export function useWeeklyReview() {
+  return useQuery({ queryKey: qk.weeklyReview, queryFn: getWeeklyReviewData })
+}
+
+// ─── BOOKS ────────────────────────────────────────────────────────────────────
+export function useBooks() {
+  return useQuery({ queryKey: qk.books(), queryFn: () => getBooks() })
+}
+
+export function useCreateBook() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Parameters<typeof createBook>[0]) => createBook(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['books'] })
+      toast.success('Book added!')
+    },
+    onError: () => toast.error('Failed to add book'),
+  })
+}
+
+export function useUpdateBook() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateBook>[1] }) =>
+      updateBook(id, data),
+    // Optimistic: merge the patch into every books cache so column moves,
+    // page updates, and ratings land instantly.
+    onMutate: async ({ id, data }) => {
+      await qc.cancelQueries({ queryKey: ['books'] })
+      const snapshots = qc.getQueriesData<Book[]>({ queryKey: ['books'] })
+      for (const [key, books] of snapshots) {
+        if (Array.isArray(books)) {
+          qc.setQueryData(key, books.map(b => (b.id === id ? { ...b, ...data } : b)))
+        }
+      }
+      return { snapshots }
+    },
+    onError: (_err, _vars, ctx: any) => {
+      for (const [key, books] of ctx?.snapshots ?? []) qc.setQueryData(key, books)
+      toast.error('Failed to update book')
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['books'] }),
+  })
+}
+
 // ─── CATEGORIES ───────────────────────────────────────────────────────────────
 export function useCategories() {
   return useQuery({
     queryKey:  qk.categories,
-    queryFn:   getCategories,
+    queryFn:   () => getCategories(),
     staleTime: 5 * 60 * 1000,
+  })
+}
+
+/** Settings page needs archived categories too (to unarchive them). */
+export function useAllCategories() {
+  return useQuery({
+    queryKey: ['categories', 'all'],
+    queryFn:  () => getCategories(true),
   })
 }
 

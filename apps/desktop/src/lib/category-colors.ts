@@ -33,6 +33,12 @@ export function getCategoryTheme(
   return FALLBACK
 }
 
+/** 8 preset swatches for habits + new categories — the category ink palette. */
+export const PRESET_COLORS = [
+  '#2563a8', '#96334d', '#b34040', '#b45309',
+  '#0d7a54', '#9d1f6e', '#b84d0a', '#4b5563',
+] as const
+
 export const PRIO: Record<Priority, string> = {
   HIGH:   '#b34040',
   MEDIUM: '#b45309',

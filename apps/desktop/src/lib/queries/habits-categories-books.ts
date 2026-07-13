@@ -69,6 +69,35 @@ export async function toggleHabitToday(habitId: string, completed: boolean) {
   )
 }
 
+export async function updateHabit(id: string, data: Partial<Pick<Habit, 'name' | 'color' | 'sort_order' | 'is_archived'>>) {
+  const fields: string[] = ['updated_at = datetime(\'now\')']
+  const values: unknown[] = []
+  if (data.name        !== undefined) { fields.push('name = ?');        values.push(data.name) }
+  if (data.color       !== undefined) { fields.push('color = ?');       values.push(data.color) }
+  if (data.sort_order  !== undefined) { fields.push('sort_order = ?');  values.push(data.sort_order) }
+  if (data.is_archived !== undefined) { fields.push('is_archived = ?'); values.push(data.is_archived ? 1 : 0) }
+  values.push(id)
+  await execute(`UPDATE habits SET ${fields.join(', ')} WHERE id = ?`, values)
+}
+
+export interface HabitLogEntry {
+  habit_id:  string
+  date:      string   // YYYY-MM-DD
+  completed: boolean
+}
+
+/** All habit logs for the last `days` days, across every habit (one query, not N). */
+export async function getHabitHistory(days = 30): Promise<HabitLogEntry[]> {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - (days - 1))
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+  const rows = await select<any>(
+    'SELECT habit_id, date, completed FROM habit_logs WHERE date >= ? ORDER BY date ASC',
+    [cutoffStr]
+  )
+  return rows.map(r => ({ ...r, completed: Boolean(r.completed) }))
+}
+
 // ─── CATEGORIES ───────────────────────────────────────────────────────────────
 
 export interface Category {
@@ -82,12 +111,12 @@ export interface Category {
   task_count?: number
 }
 
-export async function getCategories(): Promise<Category[]> {
+export async function getCategories(includeArchived = false): Promise<Category[]> {
   const rows = await select<any>(`
     SELECT c.*, COUNT(t.id) AS task_count
     FROM categories c
     LEFT JOIN tasks t ON t.category_id = c.id AND t.status NOT IN ('DONE', 'DROPPED')
-    WHERE c.is_archived = 0
+    ${includeArchived ? '' : 'WHERE c.is_archived = 0'}
     GROUP BY c.id
     ORDER BY c.sort_order ASC
   `)
