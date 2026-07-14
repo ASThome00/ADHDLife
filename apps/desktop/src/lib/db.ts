@@ -57,6 +57,21 @@ export function endOfTodaySql(): string {
   return d.toISOString()
 }
 
+/** Local calendar date 'YYYY-MM-DD'. All day-keyed data (habit logs, task
+ *  date grouping) uses LOCAL dates — UTC here made evening habit check-ins
+ *  land on tomorrow's date for US timezones. */
+export function localDateStr(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
 export function todayDateStr(): string {
-  return new Date().toISOString().split('T')[0] // YYYY-MM-DD
+  return localDateStr(new Date())
+}
+
+/** 'YYYY-MM-DD HH:MM:SS' in local time — pair with SQLite datetime(?, 'utc')
+ *  to compare against datetime('now') columns (which store UTC). */
+export function localNaiveDateTime(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
