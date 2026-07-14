@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getSettings } from '@/lib/queries/settings'
 import { applyTheme } from '@/lib/theme'
+import { runDailyHousekeeping } from '@/lib/housekeeping'
 import { AppShell } from '@/components/nav/app-shell'
 import { SetupPage }     from '@/pages/setup'
 import { DashboardPage } from '@/pages/dashboard'
@@ -19,6 +20,16 @@ export function App() {
     queryKey: ['settings'],
     queryFn:  getSettings,
   })
+
+  const qc = useQueryClient()
+
+  // Once per app open: wake expired snoozes, spawn recurring-task instances,
+  // retire yesterday's completed focus tasks — then refresh everything.
+  useEffect(() => {
+    runDailyHousekeeping()
+      .then(() => qc.invalidateQueries())
+      .catch(() => { /* housekeeping must never block the app from opening */ })
+  }, [qc])
 
   // Settings are the theme's source of truth — sync the DOM (and the
   // localStorage pre-paint cache) as soon as they load or change.
