@@ -54,27 +54,33 @@ adhd-life/
 │   │   │   │   ├── dashboard.tsx     ✅ Done — hero screen
 │   │   │   │   ├── inbox.tsx         ✅ Done — brain dump + assign flow
 │   │   │   │   ├── tasks.tsx         ✅ Done — Session 4 (two-panel + detail slide-over)
-│   │   │   │   ├── habits.tsx        🔲 Build next (Session 5)
-│   │   │   │   ├── reading.tsx       🔲
-│   │   │   │   ├── review.tsx        🔲
-│   │   │   │   ├── pomodoro.tsx      🔲 Placeholder stub (added #10, not in session plan)
-│   │   │   │   └── settings.tsx      ◐ Updater card only — rest is Session 8
+│   │   │   │   ├── habits.tsx        ✅ Done — Session 5 (streaks + 30-day grid)
+│   │   │   │   ├── reading.tsx       ✅ Done — Session 6 (three-column book kanban)
+│   │   │   │   ├── review.tsx        ✅ Done — Session 7 (stats + carried-over + priorities)
+│   │   │   │   ├── pomodoro.tsx      🔲 Next: focus-task initiation timer (see Product Decisions)
+│   │   │   │   └── settings.tsx      ✅ Done — Session 8 (profile/theme/categories/export + updater)
 │   │   │   ├── components/
 │   │   │   │   ├── nav/              ✅ app-shell, sidebar, bottom-nav
 │   │   │   │   ├── dashboard/        ✅ topbar, week-strip, focus-tasks-card, habits-card,
 │   │   │   │   │                        upcoming-card, carried-over-accordion, motivation-quote
 │   │   │   │   ├── tasks/            ✅ quick-add-fab, quick-add-modal, inbox-row,
 │   │   │   │   │                        category-sidebar, task-section, task-detail-panel, undo-toast
+│   │   │   │   ├── habits/           ✅ add-habit-form, habit-card, habit-dot-grid
+│   │   │   │   ├── reading/          ✅ book-card, add-book-modal, finish-book-modal, star-rating
+│   │   │   │   ├── review/           ✅ stats-row, carried-over-card, priorities-card, category-breakdown
+│   │   │   │   ├── settings/         ✅ profile-appearance-cards, categories-card, data-card, updater-card
 │   │   │   │   └── ui/               ✅ task-row, checkbox, category-dot, category-pill,
 │   │   │   │                            priority-dot, placeholder-page
 │   │   │   └── lib/
-│   │   │       ├── db.ts             ✅ SQLite singleton (tauri-plugin-sql)
+│   │   │       ├── db.ts             ✅ SQLite singleton + local-date helpers (localDateStr/localNaiveDateTime)
+│   │   │       ├── housekeeping.ts   ✅ app-open: wake snoozes, spawn recurrences, retire stale focus
 │   │   │       ├── utils.ts          ✅ cn(), formatDueDate(), PRIORITY_CONFIG
 │   │   │       ├── theme.ts          ✅ theme application
 │   │   │       ├── category-colors.ts ✅ CATEGORY_THEME + PRIO — canonical color mapping
 │   │   │       ├── stores/quick-add.ts ✅ quick-add modal state
 │   │   │       ├── queries/
-│   │   │       │   ├── settings.ts   ✅ getSettings / updateSettings
+│   │   │       │   ├── settings.ts   ✅ getSettings / updateSettings (+ next_week_priorities)
+│   │   │       │   ├── export.ts     ✅ full-DB JSON export via dialog+fs
 │   │   │       │   ├── tasks.ts      ✅ Full CRUD + getDashboardData
 │   │   │       │   └── habits-categories-books.ts ✅ Full CRUD
 │   │   │       └── hooks/
@@ -85,7 +91,8 @@ adhd-life/
 │   │       │   ├── main.rs           ✅ Done
 │   │       │   └── lib.rs            ✅ Done — registers plugins + migrations
 │   │       ├── migrations/
-│   │       │   └── 001_initial.sql   ✅ Full schema + default category seed
+│   │       │   ├── 001_initial.sql   ✅ Full schema + default category seed
+│   │       │   └── 002_next_week_priorities.sql ✅ Weekly-review priorities column
 │   │       ├── tauri.conf.json       ✅ Done — 1280×820 window
 │   │       ├── Cargo.toml            ✅ Done
 │   │       └── build.rs              ✅ Done
@@ -138,9 +145,17 @@ Optimistic updates are implemented in `useCompleteTask` and `useToggleHabit` —
 | `getBooks(status?)` | habits-categories-books.ts | |
 | `getSettings()` | settings.ts | Settings singleton |
 | `updateSettings(data)` | settings.ts | Partial update |
+| `getWeeklyReviewData()` | tasks.ts | All review stats in one parallel query |
+| `getHabitHistory(days)` | habits-categories-books.ts | Log rows for the 30-day grids |
+| `updateHabit(id, data)` | habits-categories-books.ts | Rename / recolor / archive |
+| `createBook` / `updateBook` | habits-categories-books.ts | Reading kanban |
+| `exportAllData()` | export.ts | Full-DB JSON via native save dialog |
+| `runDailyHousekeeping()` | housekeeping.ts | App-open: snoozes, recurrences, focus rollover |
 
 ### SQLite Notes
 - Dates stored as ISO strings. Use `startOfTodaySql()` / `endOfTodaySql()` from `lib/db.ts`.
+- **Day-keyed data uses LOCAL dates** (`localDateStr()` in db.ts) — habit_logs.date, task date grouping. UTC day keys made evening habit check-ins land on tomorrow; never use `toISOString().split('T')[0]` for a day key.
+- **SQLite `datetime('now')` columns (completed_at, created_at) are UTC `'YYYY-MM-DD HH:MM:SS'`** — raw string comparison against JS ISO strings is WRONG (space sorts before 'T'). Compare via `datetime(col) >= datetime(?, 'utc')` with `localNaiveDateTime()` params.
 - Booleans stored as 0/1. Normalize with `Boolean(row.field)` on read.
 - `focus_days.task_ids` is a JSON string — `JSON.parse()` on read.
 - `recurrences.days_of_week` is a JSON string — `JSON.parse()` on read.
@@ -233,6 +248,38 @@ Prerequisites:
 
 ---
 
+# Product Decisions (locked 2026-07-13)
+
+> Decided by Andrew after the v0.3.0 deep audit (full context: `AUDIT-2026-07-13.md`).
+> Do not re-litigate these in future sessions without asking him.
+
+- **Due dates:** calendar dates + OPTIONAL time (detail-panel picker, quiet display). Grouping is always by LOCAL date.
+- **Focus:** unfinished focus tasks get a one-click morning re-confirm ("keep these from yesterday?") — the seed of the Plan-my-day flow. Never a silent reset, never a forced wizard.
+- **Done/Dropped:** collapsed "Recently done" (last 7 days, struck-through) on the Tasks page. NO dropped archive — dropped stays gone, deliberately.
+- **Category colors:** the DB `color` column is the single source everywhere; wash derived as `color + '18'`; map legacy bright seed hexes to the designed inks; `PRESET_COLORS` are suggestions, not limits.
+- **Habits:** mixed cadence — build weekly-target habits ("N of M this week" via `target_frequency`). Keep streak numbers; paused shows `⏸ Nd` (faint), never `🔥 0`; compute streaks on read (chain may end today OR yesterday).
+- **Pomodoro:** build as a focus-task INITIATION timer — pick a focus task, one-tap 10/15/25/45 countdown, gentle finish ("keep going / done / switch"), never track failed sessions. Not strict pomodoro.
+- **Notifications: NONE anywhere** — desktop and mobile. (Overrides the original Session 10 plan below.)
+- **Reading:** pleasure-first, keep simple; add soft "put down for now" (ABANDONED rendered as "Resting"). No chapters, no reading↔task linking.
+- **No "big dates" / exam-countdown strip.** Tasks with due dates suffice.
+- **Mobile:** align seed category ids to desktop's `cat_work…cat_home` (currently `cat_0…cat_7`) BEFORE building any mobile screens.
+- **Weekly review stays solo** — current one-person design is right.
+
+## Next-build queue (post-audit, in order)
+
+1. Plan-my-day morning flow (focus re-confirm + empty-focus-card suggestions)
+2. Category color unification (fixes audit B5)
+3. "Recently done" collapsed section on Tasks
+4. Focus timer page (pomodoro slot) — own session
+5. Weekly-target habits + paused-streak display + streak-on-read recalc
+6. Due-time picker in the task detail panel
+7. Reading card ⋯ menu (move back / Resting / remove) + "+10 pages" tap
+8. Review quick wins: show last week's priorities, carried-forward `< today`, wins list, Sunday dashboard whisper
+9. Mobile seed-id alignment (fold into Session 9)
+10. Startup error states (audit B6) + paper-cuts (audit P1–P7)
+
+---
+
 # ADHD Life — Claude Code Session Plan
 ## Design Source of Truth
 
@@ -250,7 +297,7 @@ Prerequisites:
 
 ---
 
-## SESSION 4 — Tasks & Categories View
+## SESSION 4 — Tasks & Categories View ✅ SHIPPED
 
 **Goal:** The full task browser.
 
@@ -319,7 +366,7 @@ ADHD principles:
 
 ---
 
-## SESSION 5 — Habits
+## SESSION 5 — Habits ✅ SHIPPED
 
 **Goal:** Daily habit tracking with forgiving streaks.
 
@@ -366,7 +413,7 @@ ARCHIVE:
 
 ---
 
-## SESSION 6 — Reading Tracker
+## SESSION 6 — Reading Tracker ✅ SHIPPED
 
 **Goal:** Track her med school reading and personal books.
 
@@ -409,7 +456,7 @@ FINISH MODAL (matches .modal class):
 
 ---
 
-## SESSION 7 — Weekly Review
+## SESSION 7 — Weekly Review ✅ SHIPPED
 
 **Goal:** A guided, encouraging look back at the week.
 
@@ -455,7 +502,7 @@ TONE: Supportive friend reviewing the week, not a productivity judge.
 
 ---
 
-## SESSION 8 — Settings & Dark Mode
+## SESSION 8 — Settings & Dark Mode ✅ SHIPPED
 
 **Goal:** User preferences + dark mode + data export.
 
@@ -522,6 +569,9 @@ DESIGN REFERENCE:
 The mobile app should use the same color tokens as the desktop — same hex values,
 same category colors, same primary #c9566e. Use NativeWind throughout.
 The design system is documented in CLAUDE.md under "Color tokens".
+
+FIRST: align mobile seed category ids to desktop's (cat_work…cat_home —
+mobile currently seeds cat_0…cat_7). See Product Decisions.
 
 The database layer is already written at apps/mobile/lib/db.ts.
 It exports: getDb(), getTodayTasks(), getHabitsWithTodayStatus()
@@ -618,16 +668,12 @@ Tap → book detail modal (full-screen stack): all fields, progress update, rati
 
 --- NOTIFICATIONS ---
 
-File: apps/mobile/lib/notifications.ts
-
-expo-notifications (already installed).
-scheduleMorningReminder(hour: number, minute: number):
-  Cancel existing → schedule daily repeating.
-  Message: "Good morning! Ready to see your day?" — calm, no task counts.
+DECISION (2026-07-13): NO notifications anywhere — desktop or mobile.
+Skip scheduleMorningReminder entirely; do not add a notifications_time column.
 
 Settings modal: apps/mobile/app/settings.tsx (presentation: 'modal').
-Display name, notification time picker, theme toggle.
-Store in SQLite settings table (add notifications_time TEXT + theme TEXT columns).
+Display name + theme toggle only.
+Store in SQLite settings table (add theme TEXT column).
 Access via gear icon in Today screen header.
 ```
 
