@@ -3,42 +3,39 @@
 A calm, forgiving life management app built for an ADHD brain.
 **Runs entirely on your computer. No accounts. No cloud. No internet required.**
 
+Native desktop app (Tauri) for macOS + Windows, with an Expo companion app for iOS + Android. Each keeps its own local SQLite database.
+
 ---
 
-## Quick Start (5 minutes)
+## Install (just want to use it?)
+
+Grab the latest installer from [Releases](https://github.com/ASThome00/adhdlife/releases):
+
+- **Windows**: `ADHD Life_x.x.x_x64-setup.exe`
+- **macOS**: `ADHD Life_x.x.x_x64.dmg`
+
+The app checks for updates itself (Settings → Check for Updates). Mobile builds ship via Expo/EAS.
+
+---
+
+## Development
 
 ### Prerequisites
-- Node.js 20+ and pnpm (`npm i -g pnpm`)
-- That's it.
 
-### 1. Install
+- Node.js 20+ and pnpm 9+ (`npm i -g pnpm`)
+- [Rust](https://rustup.rs) (for the Tauri desktop shell)
+
+### Run
+
 ```bash
 pnpm install
+pnpm dev            # Desktop app (Tauri window + Vite)
+pnpm dev:fresh      # Same, but resets the local dev database first
+pnpm dev:mobile     # Expo — scan the QR with Expo Go
+pnpm typecheck      # TypeScript check across the monorepo
 ```
 
-### 2. Set up the database
-```bash
-cp apps/web/.env.example apps/web/.env.local
-# No edits needed — the default SQLite path works out of the box
-
-cd packages/database
-pnpm db:push    # Creates data/adhd-life.db
-pnpm db:seed    # Seeds settings + 8 default life categories
-cd ../..
-```
-
-### 3. Run
-```bash
-pnpm dev:web
-# Open http://localhost:3000
-# You'll see a one-time setup screen asking for your name, then the dashboard.
-```
-
-### Mobile (optional)
-```bash
-pnpm dev:mobile
-# Scan QR with Expo Go — works fully offline with its own local SQLite DB
-```
+No database setup needed — migrations in `apps/desktop/src-tauri/migrations/` run automatically on first launch and seed the 8 default life categories.
 
 ---
 
@@ -46,27 +43,33 @@ pnpm dev:mobile
 
 | Feature | Status |
 |---|---|
-| Daily dashboard (focus tasks, habits, overdue) | Scaffolded — ready to build |
-| Brain dump inbox (type fast, sort later) | API done |
-| 8 life categories (Work, School, Health…) | Seeded |
-| Task detail (subtasks, due date, recurrence, priority) | API done |
-| Habit tracking with forgiving streaks | API done |
-| Reading tracker | API done |
-| First-run setup (no login) | Done |
-| Weekly review | Phase 7 |
-| Dark mode | Phase 7 |
-| PWA (installable) | Phase 7 |
+| Daily dashboard (focus tasks, habits, week strip) | ✅ |
+| Brain dump inbox (type fast, sort later) | ✅ |
+| Tasks (subtasks, due dates, recurrence, priority, snooze) | ✅ |
+| 8 life categories (Work, School, Health…) | ✅ |
+| Habit tracking with forgiving streaks | ✅ |
+| Reading tracker (kanban: To Read / Reading / Finished) | ✅ |
+| Weekly review (stats, carried-over, next-week priorities) | ✅ |
+| Dark mode + settings + JSON data export | ✅ |
+| Auto-updater | ✅ |
+| Focus timer (gentle pomodoro) | 🔲 planned |
+| Mobile screens (Today, Inbox, …) | 🔲 in progress |
+
+Design principles: every action ≤5 seconds, no punishing red overdue counters, streaks pause instead of resetting, capture first and sort later. Full list in [CLAUDE.md](./CLAUDE.md).
 
 ---
 
 ## How your data is stored
 
-Everything lives in a single SQLite file at `data/adhd-life.db` in this folder.
-It's gitignored, so it stays on your machine.
+Everything lives in a single SQLite file in your OS app-data directory:
 
-**To back up:** Copy `data/adhd-life.db` anywhere you want.  
-**To restore:** Put it back.  
-**To move to a new machine:** Copy the file over.
+- **Windows**: `%APPDATA%\com.adhd-life.app\adhd-life.db`
+- **macOS**: `~/Library/Application Support/com.adhd-life.app/adhd-life.db`
+
+**To back up:** copy that file anywhere (or use Settings → Export my data for JSON).
+**To restore / move machines:** put the file back in the same spot.
+
+The mobile app keeps its own separate SQLite database on-device. There is no sync between desktop and mobile (yet — deliberately).
 
 ---
 
@@ -75,43 +78,7 @@ It's gitignored, so it stays on your machine.
 ```
 adhd-life/
 ├── apps/
-│   ├── web/          Next.js 14 — the main desktop app
-│   └── mobile/       Expo — the mobile companion (offline SQLite)
-├── packages/
-│   ├── database/     Prisma schema + seed script
-│   └── types/        Shared TypeScript types
-├── data/             SQLite database lives here (gitignored)
-└── CLAUDE.md         Full context for Claude Code sessions
-```
-
----
-
-## Useful commands
-
-```bash
-pnpm dev:web               # Start web app
-pnpm dev:mobile            # Start mobile (Expo)
-pnpm typecheck             # TypeScript check
-
-cd packages/database
-pnpm db:push               # Apply schema changes to DB (no migration file)
-pnpm db:migrate            # Create a named migration
-pnpm db:studio             # Prisma Studio — visual DB browser
-pnpm db:seed               # Re-seed default data (safe to re-run)
-```
-
----
-
-## Working with Claude Code
-
-Open Claude Code from the project root and it will automatically read `CLAUDE.md`
-for full context on architecture, build order, design principles, and API routes.
-
-```bash
-cd adhd-life
-claude
-```
-
----
-
-*Built for the love of my life. 💜*
+│   ├── desktop/      Tauri 2 + Vite + React — macOS & Windows
+│   │   ├── src/              React frontend (pages, components, lib/queries)
+│   │   └── src-tauri/        Rust shell + SQLite migrations
+│   └── mobile/       Expo (React Native) — iOS 
