@@ -18,6 +18,7 @@
    numbers ONLY (counts, streaks, times, dates, 10–11px).
    ────────────────────────────────────────────────────────────────────────── */
 :root {
+  color-scheme: light;
   --bg-page:        #eef2ec;
   --bg-card:        #ffffff;
   --bg-card-lite:   #f2f6f1;
@@ -75,6 +76,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --bg-page:        #121712;
   --bg-card:        #1c231c;
   --bg-card-lite:   #222a22;
@@ -172,6 +174,7 @@
   #root {
     display: flex;
     flex-direction: column;
+    background: var(--bg-page);
   }
 
   input, textarea, [contenteditable], .selectable {
