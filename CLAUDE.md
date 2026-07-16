@@ -909,7 +909,18 @@ Interactive elements 0.12–0.2s; row sink 0.25s; theme changes 0.3s. Nothing lo
 ## Dark mode
 
 Apply via `.dark` class on `#root`. Every token (including `--cat-*` / `--prio-*`) has a
-dark twin in `index.css` — never hardcode light-only values.
+dark twin in `index.css` — never hardcode light-only values. `theme.ts` also mirrors the
+mode onto `document.documentElement.style.colorScheme` (not just the `#root` class) so
+native form-control chrome — the `<input type="date">` calendar icon, `<select>` panel —
+doesn't render with mismatched light icons inside a dark app.
+
+**Known limitation:** the date input's *popup calendar overlay* still renders with light
+OS chrome in dark mode regardless. Confirmed on Windows/WebView2 (2026-07 verification
+pass) — the overlay keys off the system/OS theme, not page CSS, so it isn't fixable via
+`color-scheme` or any stylesheet change. Fixing it for real means swapping `<input
+type="date">` for a custom-built date picker — a real feature, not a CSS fix. Don't
+re-attempt a CSS-only fix; if this ever needs to look right in dark mode, scope it as its
+own task.
 
 ## Do not
 
