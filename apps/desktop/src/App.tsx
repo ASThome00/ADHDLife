@@ -39,8 +39,11 @@ export function App() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-surface-50">
-        <div className="text-primary-400 text-2xl animate-pulse">✦</div>
+      <div
+        className="flex items-center justify-center h-screen"
+        style={{ background: 'var(--bg-page)' }}
+      >
+        <div className="animate-pulse" style={{ color: 'var(--accent)', fontSize: 24 }}>✦</div>
       </div>
     )
   }

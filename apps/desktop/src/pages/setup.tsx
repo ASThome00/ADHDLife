@@ -20,14 +20,17 @@ export function SetupPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen bg-surface-50 select-text">
+    <div
+      className="flex items-center justify-center h-screen select-text"
+      style={{ background: 'var(--bg-page)' }}
+    >
       <div className="w-full max-w-sm text-center space-y-8 px-4">
 
         {/* Logo */}
         <div>
-          <div className="text-5xl mb-3">✦</div>
-          <h1 className="text-3xl font-bold text-gray-900">ADHD Life</h1>
-          <p className="text-gray-400 mt-2 text-sm leading-relaxed">
+          <div className="mb-3" style={{ fontSize: 44, color: 'var(--accent)' }}>✦</div>
+          <h1 className="font-bold" style={{ fontSize: 28, color: 'var(--text-primary)' }}>ADHD Life</h1>
+          <p className="mt-2 text-sm" style={{ lineHeight: 1.6, color: 'var(--text-muted)' }}>
             A calm place for your brain.<br />
             Everything stays on your computer.
           </p>
@@ -36,8 +39,8 @@ export function SetupPage() {
         {/* Card */}
         <div className="card text-left space-y-5">
           <div>
-            <p className="text-gray-700 font-semibold">What should I call you?</p>
-            <p className="text-xs text-gray-400 mt-0.5">Just for your morning greeting.</p>
+            <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>What should I call you?</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>Just for your morning greeting.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -48,11 +51,8 @@ export function SetupPage() {
               value={name}
               onChange={e => setName(e.target.value)}
               maxLength={40}
-              className="w-full text-center text-lg px-4 py-3 rounded-xl
-                         border border-surface-200 bg-surface-50
-                         focus:outline-none focus:ring-2 focus:ring-primary-400
-                         focus:border-transparent placeholder:text-gray-300
-                         select-text"
+              className="input select-text text-center"
+              style={{ fontSize: 16, padding: '11px 12px' }}
             />
             <button
               type="submit"
@@ -64,7 +64,7 @@ export function SetupPage() {
           </form>
         </div>
 
-        <p className="text-xs text-gray-300">
+        <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
           No cloud. No sync. No account needed.
         </p>
       </div>

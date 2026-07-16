@@ -27,19 +27,14 @@ export function isOverdue(dateStr: string | null | undefined): boolean {
 export function getGreeting(name: string): string {
   const hour = new Date().getHours()
   const g = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  return `${g}, ${name}! 👋`
+  return `${g}, ${name}`
 }
 
+/* Forgiving tone, no emoji in UI chrome (Quiet Garden) */
 export function getStreakMessage(streak: number): string {
-  if (streak === 0)  return 'Start today!'
-  if (streak === 1)  return 'Day 1 — great start!'
-  if (streak < 7)    return `${streak} days going! 🔥`
-  if (streak < 30)   return `${streak} days — on fire! 🔥`
-  return `${streak} days — incredible! 🏆`
+  if (streak === 0)  return 'Start today — no pressure.'
+  if (streak === 1)  return 'Day 1 — great start.'
+  if (streak < 7)    return `${streak} days going strong.`
+  if (streak < 30)   return `${streak} days — this is becoming a rhythm.`
+  return `${streak} days — quietly incredible.`
 }
-
-export const PRIORITY_CONFIG = {
-  HIGH:   { label: 'High',   dot: 'bg-red-400',   text: 'text-red-500'   },
-  MEDIUM: { label: 'Medium', dot: 'bg-amber-400',  text: 'text-amber-500' },
-  LOW:    { label: 'Low',    dot: 'bg-gray-300',   text: 'text-gray-400'  },
-} as const

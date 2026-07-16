@@ -20,30 +20,17 @@ export function AddHabitForm() {
 
   return (
     <div className="card" style={{ marginBottom: 18, padding: '16px 20px' }}>
-      <div style={{ fontFamily: 'Lora, serif', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>
+      <div style={{ fontFamily: 'inherit', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>
         + New habit
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <input
+          className="input"
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } }}
           placeholder="Something small you want to do daily…"
-          style={{
-            flex: 1,
-            minWidth: 180,
-            fontFamily: 'Geist, sans-serif',
-            fontSize: 14,
-            color: 'var(--text-primary)',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: '1.5px solid var(--input-border)',
-            padding: '8px 0',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-          }}
-          onFocus={e => (e.target.style.borderBottomColor = 'var(--accent)')}
-          onBlur={e => (e.target.style.borderBottomColor = 'var(--input-border)')}
+          style={{ flex: 1, width: 'auto', minWidth: 180 }}
         />
 
         <div style={{ display: 'flex', gap: 6 }}>
@@ -59,10 +46,8 @@ export function AddHabitForm() {
                 borderRadius: '50%',
                 background: c,
                 cursor: 'pointer',
-                border: color === c ? `2px solid ${c}` : '2px solid transparent',
-                boxShadow: color === c ? `1px 1.5px 0 ${c}` : 'none',
-                outline: color === c ? '2px solid var(--bg-card)' : 'none',
-                outlineOffset: -4,
+                border: 'none',
+                boxShadow: color === c ? '0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent)' : 'none',
                 transition: 'all 0.12s',
               }}
             />

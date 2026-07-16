@@ -19,6 +19,10 @@ function setDarkClass(dark: boolean) {
   const root = document.getElementById('root')
   if (!root) return
   root.classList.toggle('dark', dark)
+  // Native popups (date picker calendar, <select> panel) key off the
+  // document's own color-scheme, not #root's — set it here too so they
+  // don't render with light OS chrome inside a dark app.
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
 }
 
 // Follow OS changes while theme === 'system'
