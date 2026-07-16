@@ -46,10 +46,8 @@ export function AddHabitForm() {
                 borderRadius: '50%',
                 background: c,
                 cursor: 'pointer',
-                border: color === c ? `2px solid ${c}` : '2px solid transparent',
-                boxShadow: color === c ? `1px 1.5px 0 ${c}` : 'none',
-                outline: color === c ? '2px solid var(--bg-card)' : 'none',
-                outlineOffset: -4,
+                border: 'none',
+                boxShadow: color === c ? '0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent)' : 'none',
                 transition: 'all 0.12s',
               }}
             />

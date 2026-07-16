@@ -39,7 +39,7 @@ export function StatsRow({ data }: { data: WeeklyReviewData }) {
                 <span style={{ fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-body)', width: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {h.name}
                 </span>
-                <div style={{ flex: 1, height: 8, background: 'var(--bg-card-lite)', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ flex: 1, height: 8, background: 'var(--bg-card-lite)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: h.color, borderRadius: 4, transition: 'width 0.4s' }} />
                 </div>
                 <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text-muted)', width: 58, textAlign: 'right', flexShrink: 0 }}>

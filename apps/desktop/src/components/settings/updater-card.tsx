@@ -113,7 +113,7 @@ export function UpdaterCard() {
             <span>Downloading update…</span>
             <span style={{ fontFamily: 'DM Mono, monospace' }}>{state.progress}%</span>
           </div>
-          <div style={{ height: 6, background: 'var(--bg-card-lite)', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'var(--bg-card-lite)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${state.progress}%`, background: 'var(--accent)', borderRadius: 4, transition: 'width 0.2s' }} />
           </div>
         </div>
