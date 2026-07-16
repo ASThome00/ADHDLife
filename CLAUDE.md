@@ -259,8 +259,9 @@ Prerequisites:
 
 # Product Decisions (locked 2026-07-13)
 
-> Decided by Andrew after the v0.3.0 deep audit (full context: `AUDIT-2026-07-13.md`).
-> Do not re-litigate these in future sessions without asking him.
+> Decided by Andrew after the v0.3.0 deep audit (2026-07-13). The audit doc itself has
+> been removed now that its outcomes are captured here — these decisions are the full
+> record. Do not re-litigate them in future sessions without asking him.
 
 - **Due dates:** calendar dates + OPTIONAL time (detail-panel picker, quiet display). Grouping is always by LOCAL date.
 - **Focus:** unfinished focus tasks get a one-click morning re-confirm ("keep these from yesterday?") — the seed of the Plan-my-day flow. Never a silent reset, never a forced wizard.
