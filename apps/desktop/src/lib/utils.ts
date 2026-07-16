@@ -38,9 +38,3 @@ export function getStreakMessage(streak: number): string {
   if (streak < 30)   return `${streak} days — this is becoming a rhythm.`
   return `${streak} days — quietly incredible.`
 }
-
-export const PRIORITY_CONFIG = {
-  HIGH:   { label: 'High',   dot: 'bg-red-400',   text: 'text-red-500'   },
-  MEDIUM: { label: 'Medium', dot: 'bg-amber-400',  text: 'text-amber-500' },
-  LOW:    { label: 'Low',    dot: 'bg-gray-300',   text: 'text-gray-400'  },
-} as const
