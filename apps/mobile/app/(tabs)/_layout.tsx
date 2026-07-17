@@ -1,19 +1,27 @@
 // apps/mobile/app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { fonts } from '../../lib/theme'
+import { useTheme } from '../../lib/use-theme'
 
 export default function TabLayout() {
+  const { theme } = useTheme()
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: theme.bgPage }}
       screenOptions={{
-        tabBarActiveTintColor: '#8b5cf6',
-        tabBarInactiveTintColor: '#9ca3af',
+        headerShown: false,
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.textFaint,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e7e5e4',
+          backgroundColor: theme.bgSidebar,
+          borderTopWidth: 0,
+          elevation: 0,
         },
-        headerStyle: { backgroundColor: '#fafaf9' },
-        headerTitleStyle: { fontWeight: '600' },
+        tabBarLabelStyle: {
+          fontFamily: fonts.medium,
+          fontSize: 10.5,
+        },
       }}
     >
       <Tabs.Screen
@@ -48,7 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'Habits',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="flame-outline" size={size} color={color} />
+            <Ionicons name="leaf-outline" size={size} color={color} />
           ),
         }}
       />
