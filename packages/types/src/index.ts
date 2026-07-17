@@ -1,6 +1,3 @@
-// ─── RE-EXPORT PRISMA ENUMS ───────────────────────────────────────────────────
-export type { TaskStatus, Priority, RecurrenceFrequency, BookStatus } from '@adhd-life/database'
-
 // ─── UI / VIEW TYPES ─────────────────────────────────────────────────────────
 
 export type DashboardView = 'today' | 'inbox' | 'category' | 'habits' | 'reading' | 'weekly'
