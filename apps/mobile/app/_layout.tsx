@@ -20,8 +20,6 @@ export default function RootLayout() {
         <StatusBar style="auto" />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="task/[id]" options={{ presentation: 'modal', title: 'Task' }} />
-          <Stack.Screen name="brain-dump" options={{ presentation: 'modal', title: 'Brain Dump' }} />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

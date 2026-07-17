@@ -259,8 +259,117 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
+  build-android:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check signing configuration
+        id: signing
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "::warning::Android signing secrets are not set — skipping the Android build. See RELEASE.md § Mobile setup."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.signing.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        if: steps.signing.outputs.skip != 'true'
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Java
+        if: steps.signing.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        if: steps.signing.outputs.skip != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Set app version
+        if: steps.signing.outputs.skip != 'true'
+        # app.config.ts derives version + Android versionCode from the
+        # repo-root VERSION file.
+        run: echo "${{ needs.determine-version.outputs.version }}" > VERSION
+
+      - name: Generate native Android project (expo prebuild)
+        if: steps.signing.outputs.skip != 'true'
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build APK with Gradle
+        if: steps.signing.outputs.skip != 'true'
+        working-directory: apps/mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Sign APK
+        if: steps.signing.outputs.skip != 'true'
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::Gradle finished but $APK was not produced."
+            find apps/mobile/android/app/build/outputs -type f -name "*.apk" -print || true
+            exit 1
+          fi
+
+          echo "$KS_B64" | base64 -d > release.keystore
+
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)
+          APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner"
+          echo "Using apksigner from build-tools $BUILD_TOOLS"
+
+          mkdir -p dist-android
+          # Gradle signs release builds with the throwaway debug key by default;
+          # apksigner replaces that signature with our persistent release key.
+          "$APKSIGNER" sign \
+            --ks release.keystore \
+            --ks-pass env:KS_PASS \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass env:KEY_PASS \
+            --out "dist-android/ADHD-Life_${VERSION}_android.apk" \
+            "$APK"
+          "$APKSIGNER" verify --print-certs "dist-android/ADHD-Life_${VERSION}_android.apk"
+
+          rm -f release.keystore
+          ls -la dist-android/
+
+      - name: Upload Android APK artifact
+        if: steps.signing.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: adhd-life-android-apk
+          path: dist-android/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
   create-release:
-    needs: [determine-version, build-macos, build-windows]
+    needs: [determine-version, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
     if: ${{ inputs.create_release }}
     permissions:
@@ -350,6 +459,7 @@ jobs:
             ls artifacts/adhd-life-macos-dmg/*.dmg 2>/dev/null || true
             ls artifacts/adhd-life-macos-update/*.app.tar.gz 2>/dev/null || true
             ls artifacts/adhd-life-windows-exe/*.exe 2>/dev/null || true
+            ls artifacts/adhd-life-android-apk/*.apk 2>/dev/null || true
             if [ "${{ steps.latest.outputs.generated }}" = "true" ]; then
               echo "latest.json"
             fi
@@ -374,6 +484,7 @@ jobs:
 
             - **macOS (universal, Intel + Apple Silicon):** `*.dmg`
             - **Windows:** `*-setup.exe`
+            - **Android (sideload):** `*_android.apk`
 
             [View build logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           files: ${{ steps.files.outputs.list }}

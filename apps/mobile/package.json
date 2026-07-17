@@ -4,9 +4,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "build:preview": "eas build --profile preview",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,7 +18,6 @@
     "expo-font": "~12.0.0",
     "expo-haptics": "~13.0.0",
     "expo-linking": "~6.3.0",
-    "expo-notifications": "~0.28.0",
     "expo-router": "~3.5.0",
     "expo-splash-screen": "~0.27.0",
     "expo-sqlite": "~14.0.0",
