@@ -16,6 +16,7 @@ import { fonts, getCategoryTheme } from '../../lib/theme'
 import { useTheme } from '../../lib/use-theme'
 import { groupTasks } from '../../lib/utils'
 import { SwipeableTaskRow } from '../../components/swipeable-task-row'
+import { ScreenHeader } from '../../components/screen-header'
 import { SectionLabel } from '../../components/section-label'
 import { EmptyState } from '../../components/empty-state'
 import { Fab } from '../../components/fab'
@@ -73,7 +74,7 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView style={[styles.page, { backgroundColor: theme.bgPage }]} edges={['top']}>
-      <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Tasks</Text>
+      <ScreenHeader title="Tasks" />
 
       <ScrollView
         horizontal
@@ -149,13 +150,6 @@ export default function TasksScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
-  pageTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 22,
-    letterSpacing: -0.4,
-    paddingHorizontal: 20,
-    paddingTop: 28,
-  },
   pillStrip: { flexGrow: 0, marginTop: 14 },
   pillRow: { paddingHorizontal: 20, gap: 8 },
   pill: {

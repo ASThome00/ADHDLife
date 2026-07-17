@@ -33,7 +33,7 @@ function ThemedApp() {
     <>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} backgroundColor={theme.bgPage} />
       <Stack screenOptions={{ contentStyle: { backgroundColor: theme.bgPage } }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
     </>

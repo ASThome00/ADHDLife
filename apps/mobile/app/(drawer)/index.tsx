@@ -18,6 +18,7 @@ import { fonts } from '../../lib/theme'
 import { useTheme } from '../../lib/use-theme'
 import { getGreeting } from '../../lib/utils'
 import { HabitCircle } from '../../components/habit-circle'
+import { MenuButton } from '../../components/screen-header'
 import { TaskRow } from '../../components/task-row'
 import { SectionLabel } from '../../components/section-label'
 import { EmptyState } from '../../components/empty-state'
@@ -53,6 +54,7 @@ export default function TodayScreen() {
     <SafeAreaView style={[styles.page, { backgroundColor: theme.bgPage }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <MenuButton />
           <View style={{ flex: 1 }}>
             <Text style={[styles.greeting, { color: theme.textPrimary }]}>
               {getGreeting(settings?.display_name ?? 'friend')}
@@ -112,7 +114,8 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: 100, gap: 16 },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 14,
     paddingTop: 8,
   },
   greeting: { fontFamily: fonts.bold, fontSize: 22, letterSpacing: -0.4 },

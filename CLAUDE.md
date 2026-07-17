@@ -100,15 +100,16 @@ adhd-life/
 │       ├── app/
 │       │   ├── _layout.tsx           ✅ Done — fonts + QueryClient + ThemeProvider + housekeeping
 │       │   ├── settings.tsx          ✅ Done — modal: display name + theme toggle (NO notifications)
-│       │   └── (tabs)/
-│       │       ├── _layout.tsx       ✅ Done — 5-tab nav, Quiet Garden tab bar
+│       │   └── (drawer)/             Hamburger drawer nav (NOT tabs — Andrew wants room to add pages)
+│       │       ├── _layout.tsx       ✅ Done — expo-router Drawer, Quiet Garden sidebar styling
 │       │       ├── index.tsx         ✅ Done — Today: greeting, habit circles, Focus/Also today, FAB
 │       │       ├── inbox.tsx         ✅ Done — brain dump + assign-category sheet
 │       │       ├── tasks.tsx         ✅ Done — category pills + 5 sections + swipe complete/snooze/drop
 │       │       ├── habits.tsx        ✅ Done — cards + 30-day dot grid + new-habit sheet
 │       │       └── reading.tsx       ✅ Done — To read/Reading/Finished pills + detail sheet
-│       ├── components/               ✅ task-row, swipeable-task-row, habit-circle, dot-grid,
-│       │                                sheet, quick-add-sheet, add-book-sheet, book-detail-sheet,
+│       ├── components/               ✅ drawer-content, screen-header (hamburger), task-row,
+│       │                                swipeable-task-row, habit-circle, dot-grid, sheet,
+│       │                                quick-add-sheet, add-book-sheet, book-detail-sheet,
 │       │                                fab, undo-toast, section-label, empty-state
 │       └── lib/
 │           ├── db.ts                 ✅ Done — expo-sqlite, desktop-aligned seeds (cat_work…cat_home),

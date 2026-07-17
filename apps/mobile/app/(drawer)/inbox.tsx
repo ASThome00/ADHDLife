@@ -15,6 +15,7 @@ import { fonts, getCategoryTheme } from '../../lib/theme'
 import { useTheme } from '../../lib/use-theme'
 import { Sheet } from '../../components/sheet'
 import { EmptyState } from '../../components/empty-state'
+import { ScreenHeader } from '../../components/screen-header'
 
 export default function InboxScreen() {
   const { theme } = useTheme()
@@ -44,6 +45,7 @@ export default function InboxScreen() {
 
   return (
     <SafeAreaView style={[styles.page, { backgroundColor: theme.bgPage }]} edges={['top']}>
+      <ScreenHeader title="Inbox" />
       <FlatList
         data={tasks}
         keyExtractor={t => t.id}
@@ -51,7 +53,6 @@ export default function InboxScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.dumpBlock}>
-            <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Inbox</Text>
             <TextInput
               value={dumpText}
               onChangeText={setDumpText}
@@ -112,7 +113,6 @@ const styles = StyleSheet.create({
   page: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40, gap: 8 },
   dumpBlock: { marginBottom: 12 },
-  pageTitle: { fontFamily: fonts.bold, fontSize: 22, letterSpacing: -0.4, paddingTop: 8, marginBottom: 14 },
   dumpInput: {
     borderRadius: 13,
     padding: 16,

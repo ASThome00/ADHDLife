@@ -7,6 +7,7 @@ import { getBooks, type Book, type BookStatus } from '../../lib/db'
 import { fonts } from '../../lib/theme'
 import { useTheme } from '../../lib/use-theme'
 import { EmptyState } from '../../components/empty-state'
+import { ScreenHeader } from '../../components/screen-header'
 import { Fab } from '../../components/fab'
 import { AddBookSheet } from '../../components/add-book-sheet'
 import { BookDetailSheet } from '../../components/book-detail-sheet'
@@ -34,7 +35,7 @@ export default function ReadingScreen() {
 
   return (
     <SafeAreaView style={[styles.page, { backgroundColor: theme.bgPage }]} edges={['top']}>
-      <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Reading</Text>
+      <ScreenHeader title="Reading" />
 
       <View style={styles.tabRow}>
         {TABS.map(([status, label]) => {
@@ -102,13 +103,6 @@ export default function ReadingScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
-  pageTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 22,
-    letterSpacing: -0.4,
-    paddingHorizontal: 20,
-    paddingTop: 28,
-  },
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginTop: 14 },
   tab: { borderRadius: 999, paddingHorizontal: 15, paddingVertical: 8 },
   tabText: { fontFamily: fonts.medium, fontSize: 12.5 },

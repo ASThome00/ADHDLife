@@ -17,6 +17,7 @@ import { getStreakMessage } from '../../lib/utils'
 import { DotGrid } from '../../components/dot-grid'
 import { Sheet } from '../../components/sheet'
 import { EmptyState } from '../../components/empty-state'
+import { ScreenHeader } from '../../components/screen-header'
 
 // Same designed inks as the seeded categories — suggestions, not limits.
 const HABIT_COLORS = ['#33705c', '#4270c0', '#7a5bc8', '#bd5b68', '#99690a', '#5c9a33', '#ad4796', '#b55c22']
@@ -64,13 +65,15 @@ export default function HabitsScreen() {
 
   return (
     <SafeAreaView style={[styles.page, { backgroundColor: theme.bgPage }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Habits</Text>
+      <ScreenHeader
+        title="Habits"
+        right={
           <Pressable onPress={() => setAddOpen(true)} hitSlop={10}>
             <Text style={[styles.addLink, { color: theme.textAccent }]}>+ New habit</Text>
           </Pressable>
-        </View>
+        }
+      />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {habits.length === 0 ? (
           <EmptyState>No habits yet. Start with one tiny thing — brushing counts.</EmptyState>
@@ -146,13 +149,6 @@ export default function HabitsScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40, gap: 16 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-  },
-  pageTitle: { fontFamily: fonts.bold, fontSize: 22, letterSpacing: -0.4 },
   addLink: { fontFamily: fonts.semibold, fontSize: 14 },
   card: { borderRadius: 20, padding: 20 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
