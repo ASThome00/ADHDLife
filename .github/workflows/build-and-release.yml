@@ -265,74 +265,102 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check EAS configuration
-        id: eas-check
+      - name: Check signing configuration
+        id: signing
         env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "::warning::EAS_TOKEN secret is not set — skipping the Android build. See RELEASE.md § Mobile setup."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          elif ! grep -q "projectId" apps/mobile/app.config.ts; then
-            echo "::warning::No EAS projectId in apps/mobile/app.config.ts (run 'eas init' once) — skipping the Android build. See RELEASE.md § Mobile setup."
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "::warning::Android signing secrets are not set — skipping the Android build. See RELEASE.md § Mobile setup."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup Node.js
-        if: steps.eas-check.outputs.skip != 'true'
+        if: steps.signing.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install pnpm
-        if: steps.eas-check.outputs.skip != 'true'
+        if: steps.signing.outputs.skip != 'true'
         uses: pnpm/action-setup@v3
         with:
           version: ${{ env.PNPM_VERSION }}
 
+      - name: Setup Java
+        if: steps.signing.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Install dependencies
-        if: steps.eas-check.outputs.skip != 'true'
+        if: steps.signing.outputs.skip != 'true'
         run: pnpm install --no-frozen-lockfile
 
-      - name: Setup EAS CLI
-        if: steps.eas-check.outputs.skip != 'true'
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EAS_TOKEN }}
-
       - name: Set app version
-        if: steps.eas-check.outputs.skip != 'true'
-        # app.config.ts reads the repo-root VERSION file; EAS uploads the
-        # working tree including this uncommitted change.
+        if: steps.signing.outputs.skip != 'true'
+        # app.config.ts derives version + Android versionCode from the
+        # repo-root VERSION file.
         run: echo "${{ needs.determine-version.outputs.version }}" > VERSION
 
-      - name: Build Android APK on EAS
-        if: steps.eas-check.outputs.skip != 'true'
+      - name: Generate native Android project (expo prebuild)
+        if: steps.signing.outputs.skip != 'true'
         working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build APK with Gradle
+        if: steps.signing.outputs.skip != 'true'
+        working-directory: apps/mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Sign APK
+        if: steps.signing.outputs.skip != 'true'
         env:
-          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -e
-          eas build --platform android --profile production --non-interactive --wait --json > build.json
-          echo "=== EAS build result ==="
-          cat build.json
-
-          APK_URL=$(jq -r '.[0].artifacts.buildUrl // empty' build.json)
-          if [ -z "$APK_URL" ]; then
-            echo "::error::EAS build finished but no artifact URL was returned."
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::Gradle finished but $APK was not produced."
+            find apps/mobile/android/app/build/outputs -type f -name "*.apk" -print || true
             exit 1
           fi
 
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          mkdir -p ../../dist-android
-          curl -fL "$APK_URL" -o "../../dist-android/ADHD-Life_${VERSION}_android.apk"
-          ls -la ../../dist-android/
+          echo "$KS_B64" | base64 -d > release.keystore
+
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)
+          APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner"
+          echo "Using apksigner from build-tools $BUILD_TOOLS"
+
+          mkdir -p dist-android
+          # Gradle signs release builds with the throwaway debug key by default;
+          # apksigner replaces that signature with our persistent release key.
+          "$APKSIGNER" sign \
+            --ks release.keystore \
+            --ks-pass env:KS_PASS \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass env:KEY_PASS \
+            --out "dist-android/ADHD-Life_${VERSION}_android.apk" \
+            "$APK"
+          "$APKSIGNER" verify --print-certs "dist-android/ADHD-Life_${VERSION}_android.apk"
+
+          rm -f release.keystore
+          ls -la dist-android/
 
       - name: Upload Android APK artifact
-        if: steps.eas-check.outputs.skip != 'true'
+        if: steps.signing.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: adhd-life-android-apk

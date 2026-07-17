@@ -12,6 +12,13 @@ function repoVersion(): string {
   }
 }
 
+// Android requires a monotonically increasing integer versionCode.
+// Derived from semver so releases order correctly (assumes minor/patch < 100).
+function androidVersionCode(version: string): number {
+  const [major = 0, minor = 0, patch = 0] = version.split('.').map(Number)
+  return Math.max(1, major * 10000 + minor * 100 + patch)
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'ADHD Life',
@@ -36,6 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#eef2ec',
     },
     package: 'com.asthome.adhdlife',
+    versionCode: androidVersionCode(repoVersion()),
   },
   web: {
     favicon: './assets/favicon.png',

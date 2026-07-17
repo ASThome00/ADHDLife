@@ -260,7 +260,8 @@ pnpm typecheck                     # Type check all
 Prerequisites:
 - Node 20+, pnpm 9+
 - `gh` CLI for releases: https://cli.github.com
-- `EAS_TOKEN` secret in GitHub repo (for mobile builds)
+- `ANDROID_*` signing secrets in the GitHub repo for Android builds
+  (one-time keystore setup — see RELEASE.md § Mobile setup)
 
 ---
 
@@ -279,7 +280,8 @@ pnpm dev:mobile
 Prerequisites:
 - macOS required for iOS builds
 - Xcode installed (for iOS Simulator)
-- EAS CLI for device builds: `npm i -g eas-cli`
+- Device builds come from the release pipeline (no cloud build service —
+  `expo prebuild` + Gradle on the GitHub runner; see RELEASE.md)
 
 ---
 
@@ -314,10 +316,12 @@ Prerequisites:
 9. Mobile seed-id alignment (fold into Session 9)
 10. Startup error states (audit B6) + paper-cuts (audit P1–P7)
 11. Mobile release pipeline — **phase 1 (Android) shipped 2026-07-16**: `build-and-release.yml`
-    builds an APK via EAS and attaches it to the GitHub Release (job self-skips until the
-    one-time EAS setup in RELEASE.md § Mobile setup is done: `eas init` + `EAS_TOKEN` secret).
-    **Phase 2 (iOS) remains**: EAS build + TestFlight submit — Andrew has an Apple Developer
-    account; needs Apple credentials wired into EAS (`eas credentials`) and a `build-ios` job.
+    builds the APK directly on the GitHub runner (`expo prebuild` + Gradle + apksigner —
+    deliberately NO EAS/Expo cloud service, per the no-third-parties gospel) and attaches it
+    to the GitHub Release. Job self-skips until the one-time keystore setup in RELEASE.md
+    § Mobile setup is done (four `ANDROID_*` secrets). **Phase 2 (iOS) remains**: xcodebuild
+    on the macOS runner + TestFlight upload — Andrew has an Apple Developer account; needs
+    signing certs/profile as GitHub secrets and a `build-ios` job. No EAS here either.
 
 ---
 
@@ -474,18 +478,19 @@ cd apps/desktop && pnpm build
 # Output: src-tauri/target/release/bundle/nsis/ADHD Life_0.1.0_x64-setup.exe
 ```
 
-### iOS (via Expo)
+### Android (.apk)
+Built by the release pipeline (`expo prebuild` + Gradle on the GitHub runner —
+no EAS). To build locally with the Android SDK installed:
 ```bash
 cd apps/mobile
-npm install -g eas-cli && eas login
-eas build --platform ios --profile preview
+npx expo prebuild --platform android --no-install
+cd android && ./gradlew assembleRelease
+# Output: app/build/outputs/apk/release/app-release.apk (debug-signed;
+# the pipeline re-signs with the release keystore)
 ```
 
-### Android (via Expo)
-```bash
-cd apps/mobile
-eas build --platform android --profile preview
-```
+### iOS (.ipa)
+Pipeline phase 2 (not built yet). Local simulator runs work via `pnpm ios` on macOS.
 
 ---
 
