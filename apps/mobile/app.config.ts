@@ -28,14 +28,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.tanner.adhdlife',
+    bundleIdentifier: 'com.asthome.adhdlife',
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#eef2ec',
     },
-    package: 'com.tanner.adhdlife',
+    package: 'com.asthome.adhdlife',
   },
   web: {
     favicon: './assets/favicon.png',
