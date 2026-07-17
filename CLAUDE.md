@@ -313,6 +313,7 @@ Prerequisites:
 8. Review quick wins: show last week's priorities, carried-forward `< today`, wins list, Sunday dashboard whisper
 9. Mobile seed-id alignment (fold into Session 9)
 10. Startup error states (audit B6) + paper-cuts (audit P1–P7)
+11. Extend the GitHub Actions release pipeline (`build-and-release.yml`) to build and publish iOS/Android automatically via EAS — currently `eas build` is a manual step (see Mobile: Commands Reference)
 
 ---
 

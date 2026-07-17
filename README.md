@@ -46,6 +46,7 @@ Needs Node 20+, pnpm 9+, and [Rust](https://rustup.rs) for the Tauri shell. No D
 | Auto-updater | ✅ |
 | Focus timer (gentle pomodoro) | 🔲 planned |
 | Mobile screens (Today, Inbox, …) | 🔲 in progress |
+| Automated mobile builds in the release pipeline | 🔲 planned |
 
 Every action ≤5 seconds, no punishing red overdue counters, streaks pause instead of resetting — wrapped in a calm "Quiet Garden" tonal sage theme. Full design principles in [CLAUDE.md](./CLAUDE.md).
 
