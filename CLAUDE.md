@@ -313,7 +313,11 @@ Prerequisites:
 8. Review quick wins: show last week's priorities, carried-forward `< today`, wins list, Sunday dashboard whisper
 9. Mobile seed-id alignment (fold into Session 9)
 10. Startup error states (audit B6) + paper-cuts (audit P1–P7)
-11. Extend the GitHub Actions release pipeline (`build-and-release.yml`) to build and publish iOS/Android automatically via EAS — currently `eas build` is a manual step (see Mobile: Commands Reference)
+11. Mobile release pipeline — **phase 1 (Android) shipped 2026-07-16**: `build-and-release.yml`
+    builds an APK via EAS and attaches it to the GitHub Release (job self-skips until the
+    one-time EAS setup in RELEASE.md § Mobile setup is done: `eas init` + `EAS_TOKEN` secret).
+    **Phase 2 (iOS) remains**: EAS build + TestFlight submit — Andrew has an Apple Developer
+    account; needs Apple credentials wired into EAS (`eas credentials`) and a `build-ios` job.
 
 ---
 

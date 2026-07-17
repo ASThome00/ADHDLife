@@ -49,14 +49,18 @@ pnpm release
 ↓ reads VERSION → increments patch → triggers workflow
 
 **GitHub Actions side:**
-- macOS runner: builds desktop + iOS
-- Windows runner: builds desktop
-- Ubuntu runner: builds Android
+- macOS runner: builds the desktop app (universal .dmg)
+- Windows runner: builds the desktop app (-setup.exe)
+- Ubuntu runner: builds the Android .apk via EAS Build
+  (skipped with a warning until EAS is configured — see "Mobile setup" below)
 - Final step: creates release with all artifacts
+
+iOS is not built by the pipeline yet — planned as phase 2 (EAS build + TestFlight
+submit, requires Apple Developer credentials wired into EAS).
 
 **Result:**
 - Release page: `https://github.com/ASThome00/adhd-life/releases/tag/v0.0.2`
-- Artifacts: DMG, EXE, APK, IPA (EAS)
+- Artifacts: DMG, EXE, APK
 - `VERSION` file auto-updated to `0.0.3`
 
 ---
@@ -73,9 +77,28 @@ pnpm release
    gh auth login
    ```
 
-2. **EAS_TOKEN** secret in GitHub repo settings
-   - Get token from https://expo.dev
-   - Add as GitHub secret: Settings → Secrets → `EAS_TOKEN`
+2. **Mobile setup** (one-time, required before the Android job produces builds —
+   until then the job skips itself with a warning and desktop releases work normally):
+
+   1. Create/log in to an Expo account, then link the project:
+      ```bash
+      npm i -g eas-cli
+      eas login
+      cd apps/mobile && eas init
+      ```
+      Because the app uses a dynamic config (`app.config.ts`), `eas init` will print
+      a project ID instead of writing it. Add it to `app.config.ts` and commit:
+      ```ts
+      owner: '<your-expo-username>',
+      extra: { eas: { projectId: '<id-from-eas-init>' } },
+      ```
+   2. Create an access token at https://expo.dev → Account settings → Access tokens,
+      and add it as a GitHub secret: repo Settings → Secrets and variables → Actions
+      → New secret, name `EAS_TOKEN`.
+
+   The app version comes from the repo-root `VERSION` file (read by `app.config.ts`);
+   Android `versionCode` is managed remotely by EAS (`appVersionSource: remote` +
+   `autoIncrement`). Nothing to bump by hand.
 
 ---
 
@@ -119,9 +142,15 @@ https://github.com/ASThome00/adhd-life/releases/download/v1.0.0/adhd-life_1.0.0_
 https://github.com/ASThome00/adhd-life/releases/download/v1.0.0/adhd-life_1.0.0_x64.exe
 ```
 
-### Mobile (EAS)
-- iOS: Available via EAS dashboard + TestFlight
-- Android: Available via EAS dashboard + Google Play
+### Android
+```
+https://github.com/ASThome00/adhd-life/releases/download/v1.0.0/ADHD-Life_1.0.0_android.apk
+```
+Install by opening the .apk on the phone (allow "install from unknown sources"
+the first time). Updates install over the top — data is kept.
+
+### iOS
+Not in the pipeline yet (phase 2: EAS build + TestFlight).
 
 ---
 
@@ -164,4 +193,4 @@ Track releases at: https://github.com/ASThome00/adhd-life/releases
 Each release includes:
 - DMG (macOS)
 - EXE (Windows)
-- Build info & links to EAS for mobile artifacts
+- APK (Android, once EAS is configured)

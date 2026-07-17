@@ -259,8 +259,89 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
+  build-android:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check EAS configuration
+        id: eas-check
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::warning::EAS_TOKEN secret is not set — skipping the Android build. See RELEASE.md § Mobile setup."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif ! grep -q "projectId" apps/mobile/app.config.ts; then
+            echo "::warning::No EAS projectId in apps/mobile/app.config.ts (run 'eas init' once) — skipping the Android build. See RELEASE.md § Mobile setup."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.eas-check.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        if: steps.eas-check.outputs.skip != 'true'
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        if: steps.eas-check.outputs.skip != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Setup EAS CLI
+        if: steps.eas-check.outputs.skip != 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+
+      - name: Set app version
+        if: steps.eas-check.outputs.skip != 'true'
+        # app.config.ts reads the repo-root VERSION file; EAS uploads the
+        # working tree including this uncommitted change.
+        run: echo "${{ needs.determine-version.outputs.version }}" > VERSION
+
+      - name: Build Android APK on EAS
+        if: steps.eas-check.outputs.skip != 'true'
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          set -e
+          eas build --platform android --profile production --non-interactive --wait --json > build.json
+          echo "=== EAS build result ==="
+          cat build.json
+
+          APK_URL=$(jq -r '.[0].artifacts.buildUrl // empty' build.json)
+          if [ -z "$APK_URL" ]; then
+            echo "::error::EAS build finished but no artifact URL was returned."
+            exit 1
+          fi
+
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          mkdir -p ../../dist-android
+          curl -fL "$APK_URL" -o "../../dist-android/ADHD-Life_${VERSION}_android.apk"
+          ls -la ../../dist-android/
+
+      - name: Upload Android APK artifact
+        if: steps.eas-check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: adhd-life-android-apk
+          path: dist-android/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
   create-release:
-    needs: [determine-version, build-macos, build-windows]
+    needs: [determine-version, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
     if: ${{ inputs.create_release }}
     permissions:
@@ -350,6 +431,7 @@ jobs:
             ls artifacts/adhd-life-macos-dmg/*.dmg 2>/dev/null || true
             ls artifacts/adhd-life-macos-update/*.app.tar.gz 2>/dev/null || true
             ls artifacts/adhd-life-windows-exe/*.exe 2>/dev/null || true
+            ls artifacts/adhd-life-android-apk/*.apk 2>/dev/null || true
             if [ "${{ steps.latest.outputs.generated }}" = "true" ]; then
               echo "latest.json"
             fi
@@ -374,6 +456,7 @@ jobs:
 
             - **macOS (universal, Intel + Apple Silicon):** `*.dmg`
             - **Windows:** `*-setup.exe`
+            - **Android (sideload):** `*_android.apk`
 
             [View build logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           files: ${{ steps.files.outputs.list }}
